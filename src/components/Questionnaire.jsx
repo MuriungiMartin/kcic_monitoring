@@ -1,0 +1,424 @@
+import { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
+
+const Questionnaire = () => {
+  const { surveyCode } = useParams();
+  const [questions, setQuestions] = useState([]);
+  const [answers, setAnswers] = useState({});
+  const [drillDownChoices, setDrillDownChoices] = useState({});
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [currentStep, setCurrentStep] = useState(0);
+  const questionsPerPage = 10;
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        // Fetch questions
+        const questionsResponse = await fetch(
+          'http://45.149.206.133:6048/KCICCTEST/ODataV4/Company(\'CRONUS%20International%20Ltd.\')/Questions',
+          {
+            headers: {
+              'Authorization': 'Basic ' + btoa('Appkings:Appkings@254!')
+            }
+          }
+        );
+
+        if (!questionsResponse.ok) {
+          throw new Error('Failed to fetch questions');
+        }
+
+        const questionsData = await questionsResponse.json();
+        
+        // Filter questions for the specific survey and sort them
+        const filteredQuestions = questionsData.value
+          .filter(q => q.SurveyCode === surveyCode)
+          .sort((a, b) => {
+            const categoryOrder = { 'Summary': 1, 'Header': 2, 'Question': 3 };
+            if (a.QuizNo === b.QuizNo) {
+              return categoryOrder[a.QuestionCategory] - categoryOrder[b.QuestionCategory];
+            }
+            return a.QuizNo - b.QuizNo;
+          });
+
+        // Only fetch drill-down answers if we have questions that need them
+        const questionsNeedingChoices = filteredQuestions.filter(q => 
+          q.RequiresDrillDown && 
+          (q.QuestionType === 'Single Choice' || q.QuestionType === 'Multiple Choice')
+        );
+
+        if (questionsNeedingChoices.length > 0) {
+          const choicesResponse = await fetch(
+            'http://45.149.206.133:6048/KCICCTEST/ODataV4/Company(\'CRONUS%20International%20Ltd.\')/DrillDownAnswers',
+            {
+              headers: {
+                'Authorization': 'Basic ' + btoa('Appkings:Appkings@254!')
+              }
+            }
+          );
+
+          if (!choicesResponse.ok) {
+            throw new Error('Failed to fetch choices');
+          }
+
+          const choicesData = await choicesResponse.json();
+
+          // Organize drill-down choices by QuizNo, filtering by survey code and project number
+          const choicesMap = {};
+          choicesData.value.forEach(choice => {
+            // Only include choices that match the survey code and project number
+            const matchingQuestion = filteredQuestions.find(q => q.QuizNo === choice.QuizNo);
+            if (matchingQuestion && 
+                (choice.AuxiliaryIndex1 === '' || choice.AuxiliaryIndex1 === surveyCode) && 
+                choice.ProjectNo === matchingQuestion.ProjectNo) {
+              if (!choicesMap[choice.QuizNo]) {
+                choicesMap[choice.QuizNo] = [];
+              }
+              choicesMap[choice.QuizNo].push(choice);
+            }
+          });
+
+          // Sort choices by AuxiliaryIndex2
+          Object.keys(choicesMap).forEach(quizNo => {
+            choicesMap[quizNo].sort((a, b) => a.AuxiliaryIndex2 - b.AuxiliaryIndex2);
+          });
+
+          setDrillDownChoices(choicesMap);
+        }
+
+        setQuestions(filteredQuestions);
+      } catch (err) {
+        setError(err.message);
+        console.error('Error fetching data:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [surveyCode]);
+
+  const handleInputChange = (quizNo, value) => {
+    setAnswers(prev => ({
+      ...prev,
+      [quizNo]: value
+    }));
+  };
+
+  const renderQuestionInput = (question) => {
+    switch (question.QuestionType) {
+      case 'Text':
+        return (
+          <input
+            type="text"
+            value={answers[question.QuizNo] || ''}
+            onChange={(e) => handleInputChange(question.QuizNo, e.target.value)}
+            className="w-full p-2 border rounded-md focus:outline-none focus:border-[#5FAF46]"
+          />
+        );
+
+      case 'Number':
+        return (
+          <input
+            type="number"
+            value={answers[question.QuizNo] || ''}
+            onChange={(e) => handleInputChange(question.QuizNo, e.target.value)}
+            className="w-full p-2 border rounded-md focus:outline-none focus:border-[#5FAF46]"
+          />
+        );
+
+      case 'Date':
+        return (
+          <input
+            type="date"
+            value={answers[question.QuizNo] || ''}
+            onChange={(e) => handleInputChange(question.QuizNo, e.target.value)}
+            className="w-full p-2 border rounded-md focus:outline-none focus:border-[#5FAF46]"
+          />
+        );
+
+      case 'Single Choice':
+        return (
+          <select
+            value={answers[question.QuizNo] || ''}
+            onChange={(e) => handleInputChange(question.QuizNo, e.target.value)}
+            className="w-full p-2 border rounded-md focus:outline-none focus:border-[#5FAF46]"
+          >
+            <option value="">Select an option</option>
+            {drillDownChoices[question.QuizNo]?.map(choice => (
+              <option key={choice.AuxiliaryIndex2} value={choice.Choice}>
+                {choice.Choice}
+              </option>
+            ))}
+          </select>
+        );
+
+      case 'Multiple Choice':
+        return (
+          <div className="space-y-2">
+            {drillDownChoices[question.QuizNo]?.map(choice => (
+              <label key={choice.AuxiliaryIndex2} className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  checked={answers[question.QuizNo]?.includes(choice.Choice)}
+                  onChange={(e) => {
+                    const currentAnswers = answers[question.QuizNo] || [];
+                    if (e.target.checked) {
+                      handleInputChange(question.QuizNo, [...currentAnswers, choice.Choice]);
+                    } else {
+                      handleInputChange(
+                        question.QuizNo,
+                        currentAnswers.filter(a => a !== choice.Choice)
+                      );
+                    }
+                  }}
+                  className="form-checkbox text-[#5FAF46]"
+                />
+                <span>{choice.Choice}</span>
+              </label>
+            ))}
+          </div>
+        );
+
+      case 'Yes/No':
+        return (
+          <div className="flex space-x-4">
+            <label className="flex items-center space-x-2">
+              <input
+                type="radio"
+                name={`question-${question.QuizNo}`}
+                value="Yes"
+                checked={answers[question.QuizNo] === 'Yes'}
+                onChange={(e) => handleInputChange(question.QuizNo, e.target.value)}
+                className="form-radio text-[#5FAF46]"
+              />
+              <span>Yes</span>
+            </label>
+            <label className="flex items-center space-x-2">
+              <input
+                type="radio"
+                name={`question-${question.QuizNo}`}
+                value="No"
+                checked={answers[question.QuizNo] === 'No'}
+                onChange={(e) => handleInputChange(question.QuizNo, e.target.value)}
+                className="form-radio text-[#5FAF46]"
+              />
+              <span>No</span>
+            </label>
+          </div>
+        );
+
+      default:
+        return null;
+    }
+  };
+
+  const getCurrentQuestions = () => {
+    const startIndex = currentStep * questionsPerPage;
+    return questions.slice(startIndex, startIndex + questionsPerPage);
+  };
+
+  const totalSteps = Math.ceil(questions.length / questionsPerPage);
+
+  const handleNext = () => {
+    if (currentStep < totalSteps - 1) {
+      setCurrentStep(currentStep + 1);
+      window.scrollTo(0, 0);
+    }
+  };
+
+  const handlePrevious = () => {
+    if (currentStep > 0) {
+      setCurrentStep(currentStep - 1);
+      window.scrollTo(0, 0);
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      // Get user data from sessionStorage
+      const userData = JSON.parse(sessionStorage.getItem('userData'));
+      
+      // Process each answer
+      for (const [quizNo, value] of Object.entries(answers)) {
+        const question = questions.find(q => q.QuizNo === parseInt(quizNo));
+        if (!question) continue;
+
+        // For multiple choice answers, handle each selection
+        if (Array.isArray(value)) {
+          for (const choice of value) {
+            await submitAnswer(question, choice, userData);
+          }
+        } else {
+          await submitAnswer(question, value, userData);
+        }
+      }
+
+      // Navigate or show success message
+      alert('Survey submitted successfully');
+    } catch (err) {
+      setError('Failed to submit survey: ' + err.message);
+      console.error('Submission error:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const submitAnswer = async (question, value, userData) => {
+    return new Promise((resolve, reject) => {
+      // Format the data according to backend expectations
+      let boolAnswer = 'false'; // Default to 'false' string instead of empty string
+      let txtAnswer = '';
+      let numberAnswer = 0;
+
+      // Set the appropriate field based on question type
+      switch (question.QuestionType) {
+        case 'Yes/No':
+          boolAnswer = value === 'Yes' ? 'true' : 'false'; // Convert Yes/No to string boolean
+          break;
+        case 'Number':
+          numberAnswer = value ? parseFloat(value) : 0;
+          break;
+        case 'Text':
+        case 'Single Choice':
+        case 'Multiple Choice':
+        case 'Date':
+          txtAnswer = value || '';
+          break;
+        default:
+          txtAnswer = '';
+      }
+
+      const soapRequest = `
+        <Envelope xmlns="http://schemas.xmlsoap.org/soap/envelope/">
+          <Body>
+            <SubmitQuizAnswers xmlns="urn:microsoft-dynamics-schemas/codeunit/ProjectQuestions">
+              <projectNo>${question.ProjectNo}</projectNo>
+              <quiZNo>${question.QuizNo}</quiZNo>
+              <boolAnswer>${boolAnswer}</boolAnswer>
+              <txtAnswer>${txtAnswer}</txtAnswer>
+              <numberAnswer>${numberAnswer}</numberAnswer>
+              <submitedByName>${userData?.name || ''}</submitedByName>
+              <submitedByEmail>${Credential?.email || ''}</submitedByEmail>
+              <surveyCode>${surveyCode}</surveyCode>
+            </SubmitQuizAnswers>
+          </Body>
+        </Envelope>`;
+
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', 'http://45.149.206.133:6047/KCICCTEST/WS/CRONUS%20International%20Ltd./Codeunit/ProjectQuestions', true);
+      
+      // Add headers
+      xhr.setRequestHeader('Content-Type', 'text/xml; charset=utf-8');
+      xhr.setRequestHeader('SOAPAction', 'SubmitQuizAnswers');
+      xhr.setRequestHeader('Authorization', 'Basic ' + btoa('Appkings:Appkings@254!'));
+
+      xhr.onreadystatechange = function() {
+        if (xhr.readyState === 4) {
+          console.log('Response:', xhr.responseText); // For debugging
+          if (xhr.status === 200) {
+            if (xhr.responseText.includes('s:Fault')) {
+              // Parse the error message from the SOAP fault
+              const errorMatch = xhr.responseText.match(/<faultstring[^>]*>(.*?)<\/faultstring>/);
+              const errorMessage = errorMatch ? errorMatch[1] : 'Unknown SOAP error';
+              reject(new Error(errorMessage));
+            } else {
+              resolve(xhr.responseText);
+            }
+          } else {
+            reject(new Error(`Failed to submit answer for question ${question.QuizNo}: ${xhr.statusText}`));
+          }
+        }
+      };
+
+      xhr.onerror = function() {
+        reject(new Error('Network error occurred'));
+      };
+
+      xhr.send(soapRequest);
+    });
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#5FAF46]"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="text-red-500 text-center p-4">
+        Error: {error}
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-8 max-w-3xl mx-auto">
+      <form onSubmit={(e) => e.preventDefault()} className="space-y-8">
+        {getCurrentQuestions().map((question) => (
+          <div key={question.QuizNo} className="space-y-4">
+            {question.QuestionCategory === 'Summary' || question.QuestionCategory === 'Header' ? (
+              <h2 className="text-xl font-bold text-[#5FAF46]">{question.Question}</h2>
+            ) : (
+              <div className="space-y-2">
+                <label className="block font-medium">{question.Question}</label>
+                {renderQuestionInput(question)}
+              </div>
+            )}
+          </div>
+        ))}
+
+        <div className="flex justify-between items-center pt-6">
+          <div className="flex space-x-4">
+            <button
+              type="button"
+              onClick={handlePrevious}
+              disabled={currentStep === 0}
+              className={`px-4 py-2 border border-[#5FAF46] rounded-md transition-colors ${
+                currentStep === 0
+                  ? 'opacity-50 cursor-not-allowed'
+                  : 'text-[#5FAF46] hover:bg-[#5FAF46] hover:text-white'
+              }`}
+            >
+              Previous
+            </button>
+            <button
+              type="button"
+              onClick={handleNext}
+              disabled={currentStep === totalSteps - 1}
+              className={`px-4 py-2 border border-[#5FAF46] rounded-md transition-colors ${
+                currentStep === totalSteps - 1
+                  ? 'opacity-50 cursor-not-allowed'
+                  : 'text-[#5FAF46] hover:bg-[#5FAF46] hover:text-white'
+              }`}
+            >
+              Next
+            </button>
+          </div>
+
+          <div className="text-sm text-gray-600">
+            Page {currentStep + 1} of {totalSteps}
+          </div>
+
+          {currentStep === totalSteps - 1 && (
+            <button
+              type="submit"
+              onClick={handleSubmit}
+              className="px-4 py-2 bg-[#5FAF46] text-white rounded-md hover:bg-[#4c8c38] transition-colors"
+            >
+              Submit
+            </button>
+          )}
+        </div>
+      </form>
+    </div>
+  );
+};
+
+export default Questionnaire; 
