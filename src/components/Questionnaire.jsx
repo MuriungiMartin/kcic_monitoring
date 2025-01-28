@@ -359,28 +359,28 @@ const Questionnaire = () => {
   }
 
   return (
-    <div className="p-8 max-w-3xl mx-auto">
-      <form onSubmit={(e) => e.preventDefault()} className="space-y-8">
+    <div className="p-4 md:p-8 max-w-3xl mx-auto">
+      <form onSubmit={(e) => e.preventDefault()} className="space-y-6 md:space-y-8">
         {getCurrentQuestions().map((question) => (
-          <div key={question.QuizNo} className="space-y-4">
+          <div key={question.QuizNo} className="space-y-3 md:space-y-4">
             {question.QuestionCategory === 'Summary' || question.QuestionCategory === 'Header' ? (
-              <h2 className="text-xl font-bold text-[#5FAF46]">{question.Question}</h2>
+              <h2 className="text-lg md:text-xl font-bold text-[#5FAF46] break-words">{question.Question}</h2>
             ) : (
               <div className="space-y-2">
-                <label className="block font-medium">{question.Question}</label>
+                <label className="block font-medium text-sm md:text-base break-words">{question.Question}</label>
                 {renderQuestionInput(question)}
               </div>
             )}
           </div>
         ))}
 
-        <div className="flex justify-between items-center pt-6">
-          <div className="flex space-x-4">
+        <div className="flex flex-col md:flex-row justify-between items-center gap-4 pt-6">
+          <div className="flex space-x-4 w-full md:w-auto">
             <button
               type="button"
               onClick={handlePrevious}
               disabled={currentStep === 0}
-              className={`px-4 py-2 border border-[#5FAF46] rounded-md transition-colors ${
+              className={`flex-1 md:flex-none px-3 md:px-4 py-2 text-sm md:text-base border border-[#5FAF46] rounded-md transition-colors ${
                 currentStep === 0
                   ? 'opacity-50 cursor-not-allowed'
                   : 'text-[#5FAF46] hover:bg-[#5FAF46] hover:text-white'
@@ -392,7 +392,7 @@ const Questionnaire = () => {
               type="button"
               onClick={handleNext}
               disabled={currentStep === totalSteps - 1}
-              className={`px-4 py-2 border border-[#5FAF46] rounded-md transition-colors ${
+              className={`flex-1 md:flex-none px-3 md:px-4 py-2 text-sm md:text-base border border-[#5FAF46] rounded-md transition-colors ${
                 currentStep === totalSteps - 1
                   ? 'opacity-50 cursor-not-allowed'
                   : 'text-[#5FAF46] hover:bg-[#5FAF46] hover:text-white'
@@ -402,7 +402,7 @@ const Questionnaire = () => {
             </button>
           </div>
 
-          <div className="text-sm text-gray-600">
+          <div className="text-sm text-gray-600 order-first md:order-none w-full md:w-auto text-center">
             Page {currentStep + 1} of {totalSteps}
           </div>
 
@@ -410,7 +410,7 @@ const Questionnaire = () => {
             <button
               type="submit"
               onClick={handleSubmit}
-              className="px-4 py-2 bg-[#5FAF46] text-white rounded-md hover:bg-[#4c8c38] transition-colors"
+              className="w-full md:w-auto px-4 py-2 bg-[#5FAF46] text-white rounded-md hover:bg-[#4c8c38] transition-colors text-sm md:text-base"
             >
               Submit
             </button>
