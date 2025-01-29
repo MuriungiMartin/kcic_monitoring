@@ -19,13 +19,13 @@ const Login = () => {
 
   const handleLogin = async () => {
     try {
-      const loginUrl = "http://45.149.206.133:6047/KCICCTEST/WS/CRONUS%20International%20Ltd./Codeunit/ProjectQuestions";
+      const loginUrl = "/api/KCICCTEST/WS/CRONUS%20International%20Ltd./Codeunit/ProjectQuestions";
       
       const soapRequest = `<Envelope xmlns="http://schemas.xmlsoap.org/soap/envelope/">
         <Body>
           <fnloginCustomer xmlns="urn:microsoft-dynamics-schemas/codeunit/ProjectQuestions">
             <email>${credentials.email}</email>
-            <pasword>${credentials.password}</pasword>
+            <password>${credentials.password}</password>
           </fnloginCustomer>
         </Body>
       </Envelope>`;
@@ -33,53 +33,44 @@ const Login = () => {
       const xhr = new XMLHttpRequest();
       xhr.open('POST', loginUrl, true);
       
-      // Add headers
       xhr.setRequestHeader('Content-Type', 'text/xml; charset=utf-8');
       xhr.setRequestHeader('SOAPAction', 'fnloginCustomer');
+      xhr.setRequestHeader('Authorization', 'Basic ' + btoa('Appkings:Appkings@254!'));
       
-      // Add Basic Authentication
-      const username = 'Appkings';
-      const password = 'Appkings@254!';
-      const auth = 'Basic ' + btoa(username + ':' + password);
-      xhr.setRequestHeader('Authorization', auth);
-      
-      // Update the xhr.onreadystatechange handler:
-xhr.onreadystatechange = function() {
-    if (xhr.readyState === 4) {
-      if (xhr.status === 200) {
-        try {
-          // Extract the JSON string from SOAP response
-          const soapResponse = xhr.responseText;
-          const jsonStartIndex = soapResponse.indexOf('{"');
-          const jsonEndIndex = soapResponse.lastIndexOf('}') + 1;
-          const jsonString = soapResponse.substring(jsonStartIndex, jsonEndIndex);
-          
-          // Parse the extracted JSON
-          const responseData = JSON.parse(jsonString);
-          console.log(responseData);
-          
-          if (responseData.success) {
-            // Store user data in sessionStorage
-            sessionStorage.setItem('userData', JSON.stringify({
-              name: responseData.Name,
-              image: responseData.image
-            }));
-            sessionStorage.setItem('isAuthenticated', 'true');
-  
-            // Navigate to dashboard on successful login
-            navigate('/dashboard');
+      xhr.onreadystatechange = function() {
+        if (xhr.readyState === 4) {
+          console.log(xhr.responseText);
+          console.log(xhr.status);
+          if (xhr.status === 200) {
+            try {
+              const soapResponse = xhr.responseText;
+              const jsonStartIndex = soapResponse.indexOf('{"');
+              const jsonEndIndex = soapResponse.lastIndexOf('}') + 1;
+              const jsonString = soapResponse.substring(jsonStartIndex, jsonEndIndex);
+              
+              const responseData = JSON.parse(jsonString);
+              console.log(responseData);
+              
+              if (responseData.success) {
+                sessionStorage.setItem('userData', JSON.stringify({
+                  name: responseData.Name,
+                  image: responseData.image
+                }));
+                sessionStorage.setItem('isAuthenticated', 'true');
+    
+                navigate('/dashboard');
+              } else {
+                setError('Invalid credentials');
+              }
+            } catch (err) {
+              console.error('Error parsing response:', err);
+              setError('An error occurred during login');
+            }
           } else {
-            setError('Invalid credentials');
+            setError('Login failed');
           }
-        } catch (err) {
-          console.error('Error parsing response:', err);
-          setError('An error occurred during login');
         }
-      } else {
-        setError('Login failed');
-      }
-    }
-  };
+      };
       
       xhr.onerror = () => {
         setError('Network error occurred');

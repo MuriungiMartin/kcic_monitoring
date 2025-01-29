@@ -16,10 +16,12 @@ const Questionnaire = () => {
       try {
         // Fetch questions
         const questionsResponse = await fetch(
-          'http://45.149.206.133:6048/KCICCTEST/ODataV4/Company(\'CRONUS%20International%20Ltd.\')/Questions',
+          '/odata/KCICCTEST/ODataV4/Company(\'CRONUS%20International%20Ltd.\')/Questions',
           {
             headers: {
-              'Authorization': 'Basic ' + btoa('Appkings:Appkings@254!')
+              'Authorization': 'Basic ' + btoa('Appkings:Appkings@254!'),
+              'Accept': 'application/json',
+              'Content-Type': 'application/json'
             }
           }
         );
@@ -49,10 +51,12 @@ const Questionnaire = () => {
 
         if (questionsNeedingChoices.length > 0) {
           const choicesResponse = await fetch(
-            'http://45.149.206.133:6048/KCICCTEST/ODataV4/Company(\'CRONUS%20International%20Ltd.\')/DrillDownAnswers',
+            '/odata/KCICCTEST/ODataV4/Company(\'CRONUS%20International%20Ltd.\')/DrillDownAnswers',
             {
               headers: {
-                'Authorization': 'Basic ' + btoa('Appkings:Appkings@254!')
+                'Authorization': 'Basic ' + btoa('Appkings:Appkings@254!'),
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
               }
             }
           );
@@ -309,7 +313,7 @@ const Questionnaire = () => {
         </Envelope>`;
 
       const xhr = new XMLHttpRequest();
-      xhr.open('POST', 'http://45.149.206.133:6047/KCICCTEST/WS/CRONUS%20International%20Ltd./Codeunit/ProjectQuestions', true);
+      xhr.open('POST', '/api/KCICCTEST/WS/CRONUS%20International%20Ltd./Codeunit/ProjectQuestions', true);
       
       // Add headers
       xhr.setRequestHeader('Content-Type', 'text/xml; charset=utf-8');
