@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation, Outlet } from 'react-router-dom';
 import PropTypes from 'prop-types';
+import { HomeIcon, ClipboardDocumentListIcon, DocumentTextIcon, QuestionMarkCircleIcon, PhoneIcon } from '@heroicons/react/24/outline';
 
 const Layout = () => {
   const [userData, setUserData] = useState({
@@ -28,6 +29,14 @@ const Layout = () => {
     window.location.href = '/login';
   };
 
+  const navigation = [
+    { name: 'Dashboard', href: '/dashboard', icon: HomeIcon },
+    { name: 'Surveys', href: '/surveys', icon: ClipboardDocumentListIcon },
+    { name: 'My Questionnaires', href: '/my-questionnaires', icon: DocumentTextIcon },
+    { name: 'FAQs', href: '/faqs', icon: QuestionMarkCircleIcon },
+    { name: 'Contact Us', href: '/contact', icon: PhoneIcon },
+  ];
+
   return (
     <div className="flex min-h-screen bg-white">
       {/* Mobile Overlay */}
@@ -46,71 +55,20 @@ const Layout = () => {
           <img src="https://www.kenyacic.org/wp-content/uploads/2024/01/KCIC-logo.png" alt="KCIC" className="h-16 mb-16" />
         </div>
         <nav className="mt-4">
-          <Link 
-            to="/dashboard" 
-            className={`flex items-center px-6 py-3 ${
-              location.pathname === '/dashboard' 
-                ? 'text-[#5FAF46] bg-[#5FAF46]/10' 
-                : 'text-gray-600 hover:bg-[#5FAF46] hover:text-white'
-            } transition-colors`}
-          >
-            <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-            </svg>
-            Dashboard
-          </Link>
-          <Link 
-            to="/surveys" 
-            className={`flex items-center px-6 py-3 ${
-              location.pathname === '/surveys' 
-                ? 'text-[#5FAF46] bg-[#5FAF46]/10' 
-                : 'text-gray-600 hover:bg-[#5FAF46] hover:text-white'
-            } transition-colors`}
-          >
-            <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-            </svg>
-            Surveys
-          </Link>
-          <Link 
-            to="/questionnaire" 
-            className={`flex items-center px-6 py-3 ${
-              location.pathname === '/questionnaire' 
-                ? 'text-[#5FAF46] bg-[#5FAF46]/10' 
-                : 'text-gray-600 hover:bg-[#5FAF46] hover:text-white'
-            } transition-colors`}
-          >
-            <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
-            My Questionnaire
-          </Link>
-          <Link 
-            to="/faqs" 
-            className={`flex items-center px-6 py-3 ${
-              location.pathname === '/faqs' 
-                ? 'text-[#5FAF46] bg-[#5FAF46]/10' 
-                : 'text-gray-600 hover:bg-[#5FAF46] hover:text-white'
-            } transition-colors`}
-          >
-            <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            FAQs
-          </Link>
-          <Link 
-            to="/contact" 
-            className={`flex items-center px-6 py-3 ${
-              location.pathname === '/contact' 
-                ? 'text-[#5FAF46] bg-[#5FAF46]/10' 
-                : 'text-gray-600 hover:bg-[#5FAF46] hover:text-white'
-            } transition-colors`}
-          >
-            <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-            </svg>
-            Contact Us
-          </Link>
+          {navigation.map((item) => (
+            <Link
+              key={item.name}
+              to={item.href}
+              className={`flex items-center px-6 py-3 ${
+                location.pathname === item.href
+                  ? 'text-[#5FAF46] bg-[#5FAF46]/10'
+                  : 'text-gray-600 hover:bg-[#5FAF46] hover:text-white'
+              } transition-colors`}
+            >
+              <item.icon className="w-5 h-5 mr-3" />
+              {item.name}
+            </Link>
+          ))}
           <button 
             onClick={handleLogout} 
             className="w-full flex items-center px-6 py-3 text-gray-600 hover:bg-[#5FAF46] hover:text-white transition-colors"

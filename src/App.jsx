@@ -5,6 +5,9 @@ import Surveys from './components/Surveys';
 import Layout from './components/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
 import Questionnaire from './components/Questionnaire';
+import MyQuestionnaires from './components/MyQuestionnaires';
+import Faqs from './components/Faqs';
+import ContactUs from './components/ContactUs';
 
 function App() {
   return (
@@ -21,6 +24,9 @@ function App() {
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/surveys" element={<Surveys />} />
           <Route path="/questionnaire/:surveyCode" element={<Questionnaire />} />
+          <Route path="/my-questionnaires" element={<MyQuestionnaires />} />
+          <Route path="/faqs" element={<Faqs />} />
+          <Route path="/contact" element={<ContactUs />} />
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
         </Route>
       </Routes>
