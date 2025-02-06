@@ -9,6 +9,7 @@ const Questionnaire = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [currentStep, setCurrentStep] = useState(0);
+  const [isSubmitted, setIsSubmitted] = useState(false);
   const questionsPerPage = 10;
 
   useEffect(() => {
@@ -110,6 +111,13 @@ const Questionnaire = () => {
   };
 
   const renderQuestionInput = (question) => {
+    const commonProps = {
+      disabled: isSubmitted,
+      className: `w-full p-2 border rounded-md focus:outline-none focus:border-[#5FAF46] ${
+        isSubmitted ? 'bg-gray-100 cursor-not-allowed' : ''
+      }`
+    };
+
     switch (question.QuestionType) {
       case 'Text':
         return (
@@ -117,7 +125,7 @@ const Questionnaire = () => {
             type="text"
             value={answers[question.QuizNo] || ''}
             onChange={(e) => handleInputChange(question.QuizNo, e.target.value)}
-            className="w-full p-2 border rounded-md focus:outline-none focus:border-[#5FAF46]"
+            {...commonProps}
           />
         );
 
@@ -127,7 +135,7 @@ const Questionnaire = () => {
             type="number"
             value={answers[question.QuizNo] || ''}
             onChange={(e) => handleInputChange(question.QuizNo, e.target.value)}
-            className="w-full p-2 border rounded-md focus:outline-none focus:border-[#5FAF46]"
+            {...commonProps}
           />
         );
 
@@ -137,7 +145,7 @@ const Questionnaire = () => {
             type="date"
             value={answers[question.QuizNo] || ''}
             onChange={(e) => handleInputChange(question.QuizNo, e.target.value)}
-            className="w-full p-2 border rounded-md focus:outline-none focus:border-[#5FAF46]"
+            {...commonProps}
           />
         );
 
@@ -146,7 +154,7 @@ const Questionnaire = () => {
           <select
             value={answers[question.QuizNo] || ''}
             onChange={(e) => handleInputChange(question.QuizNo, e.target.value)}
-            className="w-full p-2 border rounded-md focus:outline-none focus:border-[#5FAF46]"
+            {...commonProps}
           >
             <option value="">Select an option</option>
             {drillDownChoices[question.QuizNo]?.map(choice => (
@@ -176,6 +184,7 @@ const Questionnaire = () => {
                       );
                     }
                   }}
+                  {...commonProps}
                   className="form-checkbox text-[#5FAF46]"
                 />
                 <span>{choice.Choice}</span>
@@ -194,6 +203,7 @@ const Questionnaire = () => {
                 value="Yes"
                 checked={answers[question.QuizNo] === 'Yes'}
                 onChange={(e) => handleInputChange(question.QuizNo, e.target.value)}
+                {...commonProps}
                 className="form-radio text-[#5FAF46]"
               />
               <span>Yes</span>
@@ -205,6 +215,7 @@ const Questionnaire = () => {
                 value="No"
                 checked={answers[question.QuizNo] === 'No'}
                 onChange={(e) => handleInputChange(question.QuizNo, e.target.value)}
+                {...commonProps}
                 className="form-radio text-[#5FAF46]"
               />
               <span>No</span>
@@ -240,6 +251,15 @@ const Questionnaire = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    const confirmSubmit = window.confirm(
+      "Are you sure you want to submit the survey? Once submitted, you won't be able to make changes."
+    );
+
+    if (!confirmSubmit) {
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -261,7 +281,7 @@ const Questionnaire = () => {
         }
       }
 
-      // Navigate or show success message
+      setIsSubmitted(true);
       alert('Survey submitted successfully');
     } catch (err) {
       setError('Failed to submit survey: ' + err.message);
@@ -306,7 +326,7 @@ const Questionnaire = () => {
               <txtAnswer>${txtAnswer}</txtAnswer>
               <numberAnswer>${numberAnswer}</numberAnswer>
               <submitedByName>${userData?.name || ''}</submitedByName>
-              <submitedByEmail>${Credential?.email || ''}</submitedByEmail>
+              <submitedByEmail>${userData?.email || ''}</submitedByEmail>
               <surveyCode>${surveyCode}</surveyCode>
             </SubmitQuizAnswers>
           </Body>
@@ -364,6 +384,11 @@ const Questionnaire = () => {
 
   return (
     <div className="p-4 md:p-8 max-w-3xl mx-auto">
+      {isSubmitted && (
+        <div className="mb-4 p-4 bg-yellow-100 text-yellow-800 rounded-md">
+          This survey has been submitted and can no longer be edited.
+        </div>
+      )}
       <form onSubmit={(e) => e.preventDefault()} className="space-y-6 md:space-y-8">
         {getCurrentQuestions().map((question) => (
           <div key={question.QuizNo} className="space-y-3 md:space-y-4">

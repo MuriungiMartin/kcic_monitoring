@@ -115,9 +115,9 @@ const Dashboard = () => {
         <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
           <h3 className="text-lg font-semibold text-gray-800 mb-4">Quick Actions</h3>
           <div className="space-y-3">
-            <button className="w-full py-2 px-4 bg-[#5FAF46] text-white rounded-md hover:bg-[#4c8c38] transition-colors">
+            <a href="/surveys" className="w-full py-2 px-4 bg-[#5FAF46] text-white rounded-md hover:bg-[#4c8c38] transition-colors text-center">
               Start New Survey
-            </button>
+            </a>
             <button className="w-full py-2 px-4 border border-[#5FAF46] text-[#5FAF46] rounded-md hover:bg-[#5FAF46] hover:text-white transition-colors">
               View Reports
             </button>

@@ -1,30 +1,59 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 const Faqs = () => {
   const [openIndex, setOpenIndex] = useState(null);
+  const [faqs, setFaqs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const faqs = [
-    {
-      question: "What is KCIC Monitoring System?",
-      answer: "KCIC Monitoring System is a platform designed to track and evaluate the progress of projects and initiatives supported by the Kenya Climate Innovation Center."
-    },
-    {
-      question: "How do I submit my project updates?",
-      answer: "You can submit project updates through the Surveys section after logging into your account. Fill in the required information and submit the form to update your project status."
-    },
-    {
-      question: "How often should I update my project status?",
-      answer: "Project status should be updated on a monthly basis, or as specified in your project agreement with KCIC."
-    },
-    {
-      question: "What should I do if I forget my password?",
-      answer: "If you forget your password, please contact the KCIC support team through the Contact Us page or email support@kenyacic.org for assistance."
-    },
-    {
-      question: "Can I edit my submitted survey responses?",
-      answer: "Once a survey is submitted, it cannot be edited. Please ensure all information is accurate before submission. Contact support if you need to make corrections."
-    }
-  ];
+  useEffect(() => {
+    const fetchFaqs = async () => {
+      try {
+        // Create Basic Auth header
+        const credentials = btoa('Appkings:Appkings@254!'); 
+        
+        const response = await fetch('/odata/KCICCTEST/ODataV4/Company(\'CRONUS%20International%20Ltd.\')/Faqs', {
+          headers: {
+            'Authorization': `Basic ${credentials}`,
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch FAQs');
+        }
+        const data = await response.json();
+        setFaqs(data.value);
+      } catch (err) {
+        setError('Failed to load FAQs');
+        console.error('Error fetching FAQs:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchFaqs();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-[#e8f5e9] to-[#c8e6c9] py-12 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-3xl mx-auto text-center">
+          Loading FAQs...
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-[#e8f5e9] to-[#c8e6c9] py-12 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-3xl mx-auto text-center text-red-600">
+          {error}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#e8f5e9] to-[#c8e6c9] py-12 px-4 sm:px-6 lg:px-8">
@@ -40,19 +69,19 @@ const Faqs = () => {
           </div>
 
           <div className="space-y-4">
-            {faqs.map((faq, index) => (
+            {faqs.map((faq) => (
               <div
-                key={index}
+                key={faq.EntryNo}
                 className="border border-gray-200 rounded-lg overflow-hidden"
               >
                 <button
                   className="w-full px-4 py-3 text-left bg-white hover:bg-gray-50 focus:outline-none flex justify-between items-center"
-                  onClick={() => setOpenIndex(openIndex === index ? null : index)}
+                  onClick={() => setOpenIndex(openIndex === faq.EntryNo ? null : faq.EntryNo)}
                 >
-                  <span className="font-medium text-gray-900">{faq.question}</span>
+                  <span className="font-medium text-gray-900">{faq.Question}</span>
                   <svg
                     className={`w-5 h-5 text-[#5FAF46] transform transition-transform ${
-                      openIndex === index ? 'rotate-180' : ''
+                      openIndex === faq.EntryNo ? 'rotate-180' : ''
                     }`}
                     fill="none"
                     viewBox="0 0 24 24"
@@ -66,9 +95,9 @@ const Faqs = () => {
                     />
                   </svg>
                 </button>
-                {openIndex === index && (
+                {openIndex === faq.EntryNo && (
                   <div className="px-4 py-3 bg-gray-50 text-gray-600">
-                    {faq.answer}
+                    {faq.Answer}
                   </div>
                 )}
               </div>

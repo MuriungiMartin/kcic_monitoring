@@ -56,7 +56,7 @@ const Login = () => {
                 sessionStorage.setItem('userData', JSON.stringify({
                   name: responseData.Name,
                   image: responseData.image,
-                  email: credentials.email
+                  email: responseData.email
                 }));
                 sessionStorage.setItem('isAuthenticated', 'true');
 

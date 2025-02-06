@@ -101,7 +101,7 @@ const MyQuestionnaires = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#e8f5e9] to-[#c8e6c9] p-8">
+    <div className="min-h-screen bg-gradient-to-br from-[#fcfcfc] to-[#f0f7f0] p-8">
       <div className="max-w-7xl mx-auto">
         <h1 className="text-2xl font-bold text-gray-900 mb-8">My Questionnaires</h1>
         
