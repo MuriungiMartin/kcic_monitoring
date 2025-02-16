@@ -40,10 +40,10 @@ const Surveys = () => {
         const soapRequest = `
           <Envelope xmlns="http://schemas.xmlsoap.org/soap/envelope/">
             <Body>
-              <isSurveyfilledByEmail xmlns="urn:microsoft-dynamics-schemas/codeunit/ProjectQuestions">
+              <IsSurveyfilledByEmail xmlns="urn:microsoft-dynamics-schemas/codeunit/ProjectQuestions">
                 <email>${userData?.email || ''}</email>
                 <surveyCode>${surveyCode}</surveyCode>
-              </isSurveyfilledByEmail>
+              </IsSurveyfilledByEmail>
             </Body>
           </Envelope>`;
 
