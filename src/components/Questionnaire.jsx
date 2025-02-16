@@ -10,6 +10,7 @@ const Questionnaire = () => {
   const [error, setError] = useState(null);
   const [currentStep, setCurrentStep] = useState(0);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [validationErrors, setValidationErrors] = useState({});
   const questionsPerPage = 10;
 
   useEffect(() => {
@@ -68,7 +69,7 @@ const Questionnaire = () => {
 
           const choicesData = await choicesResponse.json();
 
-          // Organize drill-down choices by QuizNo, filtering by survey code and project number
+          // Organize drill-down choices by QuizNo
           const choicesMap = {};
           choicesData.value.forEach(choice => {
             // Only include choices that match the survey code and project number
@@ -103,11 +104,38 @@ const Questionnaire = () => {
     fetchData();
   }, [surveyCode]);
 
+  const validateAnswers = (questionsToValidate) => {
+    const errors = {};
+    questionsToValidate.forEach(question => {
+      if (question.Mandatory && question.QuestionCategory === 'Question') {
+        const answer = answers[question.QuizNo];
+        const isEmpty = 
+          answer === undefined || 
+          answer === '' || 
+          (Array.isArray(answer) && answer.length === 0);
+        
+        if (isEmpty) {
+          errors[question.QuizNo] = 'This field is required';
+        }
+      }
+    });
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
   const handleInputChange = (quizNo, value) => {
     setAnswers(prev => ({
       ...prev,
       [quizNo]: value
     }));
+    // Clear validation error when field is filled
+    if (validationErrors[quizNo]) {
+      setValidationErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[quizNo];
+        return newErrors;
+      });
+    }
   };
 
   const renderQuestionInput = (question) => {
@@ -115,7 +143,7 @@ const Questionnaire = () => {
       disabled: isSubmitted,
       className: `w-full p-2 border rounded-md focus:outline-none focus:border-[#5FAF46] ${
         isSubmitted ? 'bg-gray-100 cursor-not-allowed' : ''
-      }`
+      } ${validationErrors[question.QuizNo] ? 'border-red-500' : ''}`
     };
 
     switch (question.QuestionType) {
@@ -184,8 +212,10 @@ const Questionnaire = () => {
                       );
                     }
                   }}
-                  {...commonProps}
-                  className="form-checkbox text-[#5FAF46]"
+                  disabled={isSubmitted}
+                  className={`form-checkbox text-[#5FAF46] ${
+                    isSubmitted ? 'cursor-not-allowed' : ''
+                  }`}
                 />
                 <span>{choice.Choice}</span>
               </label>
@@ -203,8 +233,10 @@ const Questionnaire = () => {
                 value="Yes"
                 checked={answers[question.QuizNo] === 'Yes'}
                 onChange={(e) => handleInputChange(question.QuizNo, e.target.value)}
-                {...commonProps}
-                className="form-radio text-[#5FAF46]"
+                disabled={isSubmitted}
+                className={`form-radio text-[#5FAF46] ${
+                  isSubmitted ? 'cursor-not-allowed' : ''
+                }`}
               />
               <span>Yes</span>
             </label>
@@ -215,8 +247,10 @@ const Questionnaire = () => {
                 value="No"
                 checked={answers[question.QuizNo] === 'No'}
                 onChange={(e) => handleInputChange(question.QuizNo, e.target.value)}
-                {...commonProps}
-                className="form-radio text-[#5FAF46]"
+                disabled={isSubmitted}
+                className={`form-radio text-[#5FAF46] ${
+                  isSubmitted ? 'cursor-not-allowed' : ''
+                }`}
               />
               <span>No</span>
             </label>
@@ -236,9 +270,14 @@ const Questionnaire = () => {
   const totalSteps = Math.ceil(questions.length / questionsPerPage);
 
   const handleNext = () => {
-    if (currentStep < totalSteps - 1) {
-      setCurrentStep(currentStep + 1);
-      window.scrollTo(0, 0);
+    const currentQuestions = getCurrentQuestions();
+    if (validateAnswers(currentQuestions)) {
+      if (currentStep < totalSteps - 1) {
+        setCurrentStep(currentStep + 1);
+        window.scrollTo(0, 0);
+      }
+    } else {
+      alert('Please fill in all mandatory fields before proceeding');
     }
   };
 
@@ -251,6 +290,12 @@ const Questionnaire = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // Validate all questions before submission
+    if (!validateAnswers(questions)) {
+      alert('Please fill in all mandatory fields before submitting');
+      return;
+    }
 
     const confirmSubmit = window.confirm(
       "Are you sure you want to submit the survey? Once submitted, you won't be able to make changes."
@@ -293,15 +338,13 @@ const Questionnaire = () => {
 
   const submitAnswer = async (question, value, userData) => {
     return new Promise((resolve, reject) => {
-      // Format the data according to backend expectations
-      let boolAnswer = 'false'; // Default to 'false' string instead of empty string
+      let boolAnswer = 'false';
       let txtAnswer = '';
       let numberAnswer = 0;
 
-      // Set the appropriate field based on question type
       switch (question.QuestionType) {
         case 'Yes/No':
-          boolAnswer = value === 'Yes' ? 'true' : 'false'; // Convert Yes/No to string boolean
+          boolAnswer = value === 'Yes' ? 'true' : 'false';
           break;
         case 'Number':
           numberAnswer = value ? parseFloat(value) : 0;
@@ -335,17 +378,14 @@ const Questionnaire = () => {
       const xhr = new XMLHttpRequest();
       xhr.open('POST', '/api/KCICCTEST/WS/CRONUS%20International%20Ltd./Codeunit/ProjectQuestions', true);
       
-      // Add headers
       xhr.setRequestHeader('Content-Type', 'text/xml; charset=utf-8');
       xhr.setRequestHeader('SOAPAction', 'SubmitQuizAnswers');
       xhr.setRequestHeader('Authorization', 'Basic ' + btoa('Appkings:Appkings@254!'));
 
       xhr.onreadystatechange = function() {
         if (xhr.readyState === 4) {
-          console.log('Response:', xhr.responseText); // For debugging
           if (xhr.status === 200) {
             if (xhr.responseText.includes('s:Fault')) {
-              // Parse the error message from the SOAP fault
               const errorMatch = xhr.responseText.match(/<faultstring[^>]*>(.*?)<\/faultstring>/);
               const errorMessage = errorMatch ? errorMatch[1] : 'Unknown SOAP error';
               reject(new Error(errorMessage));
@@ -389,15 +429,31 @@ const Questionnaire = () => {
           This survey has been submitted and can no longer be edited.
         </div>
       )}
+      <div className="mb-6 p-4 bg-gray-50 rounded-md">
+        <h3 className="font-semibold text-gray-700 mb-2">Instructions:</h3>
+        <ul className="text-sm text-gray-600 space-y-1">
+          <li>• Questions marked with an asterisk (<span className="text-red-500">*</span>) are mandatory.</li>
+          <li>• Please complete all questions on the current page before proceeding to the next.</li>
+          <li>• Your responses will be saved only after final submission.</li>
+        </ul>
+      </div>
       <form onSubmit={(e) => e.preventDefault()} className="space-y-6 md:space-y-8">
         {getCurrentQuestions().map((question) => (
           <div key={question.QuizNo} className="space-y-3 md:space-y-4">
             {question.QuestionCategory === 'Summary' || question.QuestionCategory === 'Header' ? (
-              <h2 className="text-lg md:text-xl font-bold text-[#5FAF46] break-words">{question.Question}</h2>
+              <h2 className="text-lg md:text-xl font-bold text-[#5FAF46] break-words">
+                {question.Question}
+              </h2>
             ) : (
               <div className="space-y-2">
-                <label className="block font-medium text-sm md:text-base break-words">{question.Question}</label>
+                <label className="block font-medium text-sm md:text-base break-words">
+                  {question.Question}
+                  {question.Mandatory && <span className="text-red-500 ml-1">*</span>}
+                </label>
                 {renderQuestionInput(question)}
+                {validationErrors[question.QuizNo] && (
+                  <p className="text-red-500 text-sm mt-1">{validationErrors[question.QuizNo]}</p>
+                )}
               </div>
             )}
           </div>
@@ -408,9 +464,9 @@ const Questionnaire = () => {
             <button
               type="button"
               onClick={handlePrevious}
-              disabled={currentStep === 0}
+              disabled={currentStep === 0 || isSubmitted}
               className={`flex-1 md:flex-none px-3 md:px-4 py-2 text-sm md:text-base border border-[#5FAF46] rounded-md transition-colors ${
-                currentStep === 0
+                currentStep === 0 || isSubmitted
                   ? 'opacity-50 cursor-not-allowed'
                   : 'text-[#5FAF46] hover:bg-[#5FAF46] hover:text-white'
               }`}
@@ -420,9 +476,9 @@ const Questionnaire = () => {
             <button
               type="button"
               onClick={handleNext}
-              disabled={currentStep === totalSteps - 1}
+              disabled={currentStep === totalSteps - 1 || isSubmitted}
               className={`flex-1 md:flex-none px-3 md:px-4 py-2 text-sm md:text-base border border-[#5FAF46] rounded-md transition-colors ${
-                currentStep === totalSteps - 1
+                currentStep === totalSteps - 1 || isSubmitted
                   ? 'opacity-50 cursor-not-allowed'
                   : 'text-[#5FAF46] hover:bg-[#5FAF46] hover:text-white'
               }`}
@@ -435,11 +491,14 @@ const Questionnaire = () => {
             Page {currentStep + 1} of {totalSteps}
           </div>
 
-          {currentStep === totalSteps - 1 && (
+          {currentStep === totalSteps - 1 && !isSubmitted && (
             <button
               type="submit"
               onClick={handleSubmit}
-              className="w-full md:w-auto px-4 py-2 bg-[#5FAF46] text-white rounded-md hover:bg-[#4c8c38] transition-colors text-sm md:text-base"
+              disabled={isSubmitted}
+              className={`w-full md:w-auto px-4 py-2 bg-[#5FAF46] text-white rounded-md transition-colors text-sm md:text-base ${
+                isSubmitted ? 'opacity-50 cursor-not-allowed' : 'hover:bg-[#4c8c38]'
+              }`}
             >
               Submit
             </button>
@@ -450,4 +509,4 @@ const Questionnaire = () => {
   );
 };
 
-export default Questionnaire; 
+export default Questionnaire;
