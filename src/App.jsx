@@ -8,12 +8,14 @@ import Questionnaire from './components/Questionnaire';
 import MyQuestionnaires from './components/MyQuestionnaires';
 import Faqs from './components/Faqs';
 import ContactUs from './components/ContactUs';
+import ResetPassword from './components/ResetPassword';
 
 function App() {
   return (
     <Router>
       <Routes>
         <Route path="/login" element={<Login />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
         <Route
           element={
             <ProtectedRoute>
