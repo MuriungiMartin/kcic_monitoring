@@ -12,6 +12,7 @@ const Questionnaire = () => {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [validationErrors, setValidationErrors] = useState({});
   const questionsPerPage = 10;
+  const [lockedQuestions, setLockedQuestions] = useState(new Set());
 
   useEffect(() => {
     const fetchData = async () => {
@@ -104,23 +105,28 @@ const Questionnaire = () => {
     fetchData();
   }, [surveyCode]);
 
-  const validateAnswers = (questionsToValidate) => {
-    const errors = {};
-    questionsToValidate.forEach(question => {
-      if (question.Mandatory && question.QuestionCategory === 'Question') {
-        const answer = answers[question.QuizNo];
-        const isEmpty = 
-          answer === undefined || 
-          answer === '' || 
-          (Array.isArray(answer) && answer.length === 0);
-        
-        if (isEmpty) {
-          errors[question.QuizNo] = 'This field is required';
-        }
-      }
-    });
-    setValidationErrors(errors);
-    return Object.keys(errors).length === 0;
+  useEffect(() => {
+    // Initialize locked questions
+    const initialLockedQuestions = new Set(
+      questions
+        .filter(q => questions.some(activator => 
+          activator.ActivatesQuestion === q.QuizNo
+        ))
+        .map(q => q.QuizNo)
+    );
+    setLockedQuestions(initialLockedQuestions);
+  }, [questions]);
+
+  const shouldUnlockQuestion = (activatorQuestion, answer) => {
+    if (!answer) return false;
+    
+    if (activatorQuestion.ActivatesBasedOnAnswer) {
+      return answer === activatorQuestion.ActivatesBasedOnAnswer;
+    }
+    if (activatorQuestion.ActivatesBasedOnValue) {
+      return answer === activatorQuestion.ActivatesBasedOnValue;
+    }
+    return false;
   };
 
   const handleInputChange = (quizNo, value) => {
@@ -128,6 +134,7 @@ const Questionnaire = () => {
       ...prev,
       [quizNo]: value
     }));
+
     // Clear validation error when field is filled
     if (validationErrors[quizNo]) {
       setValidationErrors(prev => {
@@ -136,13 +143,34 @@ const Questionnaire = () => {
         return newErrors;
       });
     }
+
+    // Check if this answer should activate any questions
+    const question = questions.find(q => q.QuizNo === quizNo);
+    if (question?.ActivatesQuestion) {
+      setLockedQuestions(prev => {
+        const newLocked = new Set(prev);
+        if (shouldUnlockQuestion(question, value)) {
+          newLocked.delete(question.ActivatesQuestion);
+        } else {
+          newLocked.add(question.ActivatesQuestion);
+          // Clear answer for the locked question
+          setAnswers(prev => {
+            const newAnswers = { ...prev };
+            delete newAnswers[question.ActivatesQuestion];
+            return newAnswers;
+          });
+        }
+        return newLocked;
+      });
+    }
   };
 
   const renderQuestionInput = (question) => {
+    const isLocked = lockedQuestions.has(question.QuizNo);
     const commonProps = {
-      disabled: isSubmitted,
+      disabled: isSubmitted || isLocked,
       className: `w-full p-2 border rounded-md focus:outline-none focus:border-[#5FAF46] ${
-        isSubmitted ? 'bg-gray-100 cursor-not-allowed' : ''
+        isSubmitted || isLocked ? 'bg-gray-100 cursor-not-allowed' : ''
       } ${validationErrors[question.QuizNo] ? 'border-red-500' : ''}`
     };
 
@@ -212,9 +240,9 @@ const Questionnaire = () => {
                       );
                     }
                   }}
-                  disabled={isSubmitted}
+                  disabled={isSubmitted || isLocked}
                   className={`form-checkbox text-[#5FAF46] ${
-                    isSubmitted ? 'cursor-not-allowed' : ''
+                    isSubmitted || isLocked ? 'cursor-not-allowed' : ''
                   }`}
                 />
                 <span>{choice.Choice}</span>
@@ -233,9 +261,9 @@ const Questionnaire = () => {
                 value="Yes"
                 checked={answers[question.QuizNo] === 'Yes'}
                 onChange={(e) => handleInputChange(question.QuizNo, e.target.value)}
-                disabled={isSubmitted}
+                disabled={isSubmitted || isLocked}
                 className={`form-radio text-[#5FAF46] ${
-                  isSubmitted ? 'cursor-not-allowed' : ''
+                  isSubmitted || isLocked ? 'cursor-not-allowed' : ''
                 }`}
               />
               <span>Yes</span>
@@ -247,9 +275,9 @@ const Questionnaire = () => {
                 value="No"
                 checked={answers[question.QuizNo] === 'No'}
                 onChange={(e) => handleInputChange(question.QuizNo, e.target.value)}
-                disabled={isSubmitted}
+                disabled={isSubmitted || isLocked}
                 className={`form-radio text-[#5FAF46] ${
-                  isSubmitted ? 'cursor-not-allowed' : ''
+                  isSubmitted || isLocked ? 'cursor-not-allowed' : ''
                 }`}
               />
               <span>No</span>
@@ -406,6 +434,25 @@ const Questionnaire = () => {
     });
   };
 
+  const validateAnswers = (questionsToValidate) => {
+    const errors = {};
+    questionsToValidate.forEach(question => {
+      if (question.Mandatory && question.QuestionCategory === 'Question') {
+        const answer = answers[question.QuizNo];
+        const isEmpty = 
+          answer === undefined || 
+          answer === '' || 
+          (Array.isArray(answer) && answer.length === 0);
+        
+        if (isEmpty) {
+          errors[question.QuizNo] = 'This field is required';
+        }
+      }
+    });
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -448,7 +495,11 @@ const Questionnaire = () => {
               <div className="space-y-2">
                 <label className="block font-medium text-sm md:text-base break-words">
                   {question.Question}
-                  {question.Mandatory && <span className="text-red-500 ml-1">*</span>}
+                  {(question.Mandatory || 
+                    (lockedQuestions.has(question.QuizNo) && !answers[question.QuizNo])) && 
+                    <span className="text-red-500 ml-1">*</span>}
+                  {lockedQuestions.has(question.QuizNo) && 
+                    <span className="text-gray-500 ml-2">(This question is depedent on the previous question&apos;s answer)</span>}
                 </label>
                 {renderQuestionInput(question)}
                 {validationErrors[question.QuizNo] && (
