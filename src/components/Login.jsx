@@ -75,7 +75,11 @@ const Login = () => {
               }
             } catch (err) {
               console.error('Error parsing response:', err);
-              setError('An error occurred during login');
+              if (err.message.includes('Invalid')) {
+                setError('Invalid Email or Password');
+              } else {
+                setError('An error occurred during login');
+              }
             }
           } else {
             setError('Login failed');
