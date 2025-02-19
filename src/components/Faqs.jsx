@@ -12,7 +12,7 @@ const Faqs = () => {
         // Create Basic Auth header
         const credentials = btoa('Appkings:Appkings@254!'); 
         
-        const response = await fetch('/odata/KCICCTEST/ODataV4/Company(\'CRONUS%20International%20Ltd.\')/Faqs', {
+        const response = await fetch('/odata/KCIC/ODataV4/Company(\'KCIC%20LIVE\')/Faqs', {
           headers: {
             'Authorization': `Basic ${credentials}`,
             'Content-Type': 'application/json',

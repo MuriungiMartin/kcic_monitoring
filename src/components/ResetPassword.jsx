@@ -46,7 +46,7 @@ const ResetPassword = () => {
 </Envelope>`;
 
       const xhr = new XMLHttpRequest();
-      xhr.open('POST', `${baseUrl}/KCICCTEST/WS/CRONUS%20International%20Ltd./Codeunit/ProjectQuestions`, true);
+      xhr.open('POST', `${baseUrl}/KCIC/WS/KCIC%20LIVE/Codeunit/ProjectQuestions`, true);
       
       xhr.setRequestHeader('Content-Type', 'text/xml; charset=utf-8');
       xhr.setRequestHeader('SOAPAction', 'ResetCustomerPassword');

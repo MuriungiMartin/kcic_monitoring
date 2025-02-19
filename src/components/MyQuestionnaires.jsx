@@ -12,7 +12,7 @@ const MyQuestionnaires = () => {
 
   const fetchSurveys = async () => {
     try {
-      const response = await fetch('http://45.149.206.133:6048/KCICCTEST/ODataV4/Company(\'CRONUS%20International%20Ltd.\')/answers', {
+      const response = await fetch('http://185.219.142.163:7048/KCIC/ODataV4/Company(\'KCIC%20LIVE\')/answers', {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',

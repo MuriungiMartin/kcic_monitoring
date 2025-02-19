@@ -18,7 +18,7 @@ const Questionnaire = () => {
       try {
         // Fetch questions
         const questionsResponse = await fetch(
-          '/odata/KCICCTEST/ODataV4/Company(\'CRONUS%20International%20Ltd.\')/Questions',
+          '/odata/KCIC/ODataV4/Company(\'KCIC%20LIVE\')/Questions',
           {
             headers: {
               'Authorization': 'Basic ' + btoa('Appkings:Appkings@254!'),
@@ -53,7 +53,7 @@ const Questionnaire = () => {
 
         if (questionsNeedingChoices.length > 0) {
           const choicesResponse = await fetch(
-            '/odata/KCICCTEST/ODataV4/Company(\'CRONUS%20International%20Ltd.\')/DrillDownAnswers',
+            '/odata/KCIC/ODataV4/Company(\'KCIC%20LIVE\')/DrillDownAnswers',
             {
               headers: {
                 'Authorization': 'Basic ' + btoa('Appkings:Appkings@254!'),
@@ -376,7 +376,7 @@ const Questionnaire = () => {
         </Envelope>`;
 
       const xhr = new XMLHttpRequest();
-      xhr.open('POST', '/api/KCICCTEST/WS/CRONUS%20International%20Ltd./Codeunit/ProjectQuestions', true);
+      xhr.open('POST', '/api/KCIC/WS/KCIC%20LIVE/Codeunit/ProjectQuestions', true);
       
       xhr.setRequestHeader('Content-Type', 'text/xml; charset=utf-8');
       xhr.setRequestHeader('SOAPAction', 'SubmitQuizAnswers');
