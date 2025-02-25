@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
+import { Droppable, DragDropContext, Draggable } from 'react-beautiful-dnd';
 
 const Questionnaire = () => {
   const { surveyCode } = useParams();
@@ -49,8 +50,10 @@ const Questionnaire = () => {
         // Only fetch drill-down answers if we have questions that need them
         const questionsNeedingChoices = filteredQuestions.filter(q => 
           q.RequiresDrillDown && 
-          (q.QuestionType === 'Single Choice' || q.QuestionType === 'Multiple Choice')
+          (q.QuestionType === 'Single Choice' || q.QuestionType === 'Multiple Choice' || q.QuestionType === 'Order')
         );
+
+        console.log('Questions needing choices:', questionsNeedingChoices);
 
         if (questionsNeedingChoices.length > 0) {
           const choicesResponse = await fetch(
@@ -69,6 +72,7 @@ const Questionnaire = () => {
           }
 
           const choicesData = await choicesResponse.json();
+          console.log('Fetched choices data:', choicesData);
 
           // Organize drill-down choices by QuizNo
           const choicesMap = {};
@@ -90,6 +94,7 @@ const Questionnaire = () => {
             choicesMap[quizNo].sort((a, b) => a.AuxiliaryIndex2 - b.AuxiliaryIndex2);
           });
 
+          console.log('Organized choices map:', choicesMap);
           setDrillDownChoices(choicesMap);
         }
 
@@ -230,57 +235,132 @@ const Questionnaire = () => {
                   type="checkbox"
                   checked={answers[question.QuizNo]?.includes(choice.Choice)}
                   onChange={(e) => {
-                    const currentAnswers = answers[question.QuizNo] || [];
+                    const currentAnswers = answers[question.QuizNo] ? answers[question.QuizNo].split(';') : [];
+                    let newAnswers;
                     if (e.target.checked) {
-                      handleInputChange(question.QuizNo, [...currentAnswers, choice.Choice]);
+                      newAnswers = [...currentAnswers, choice.Choice];
                     } else {
-                      handleInputChange(
-                        question.QuizNo,
-                        currentAnswers.filter(a => a !== choice.Choice)
-                      );
+                      newAnswers = currentAnswers.filter(answer => answer !== choice.Choice);
                     }
+                    handleInputChange(question.QuizNo, newAnswers.join(';'));
                   }}
                   disabled={isSubmitted || isLocked}
-                  className={`form-checkbox text-[#5FAF46] ${
-                    isSubmitted || isLocked ? 'cursor-not-allowed' : ''
-                  }`}
+                  className={`h-4 w-4 ${isSubmitted || isLocked ? 'cursor-not-allowed' : ''}`}
                 />
-                <span>{choice.Choice}</span>
+                <span className={isSubmitted || isLocked ? 'text-gray-500' : ''}>{choice.Choice}</span>
               </label>
             ))}
           </div>
         );
 
+      case 'Order':
+        // Debug log to check if we have choices
+        console.log('Rendering Order question:', {
+          questionNo: question.QuizNo,
+          choices: drillDownChoices[question.QuizNo],
+          currentAnswer: answers[question.QuizNo]
+        });
+
+        if (!drillDownChoices[question.QuizNo]) {
+          return <div>Loading choices...</div>;
+        }
+
+        return (
+          <DragDropContext onDragEnd={(result) => {
+            console.log('Drag end result:', result);
+            if (!result.destination) return;
+            
+            const items = Array.from(drillDownChoices[question.QuizNo]);
+            const [removed] = items.splice(result.source.index, 1);
+            items.splice(result.destination.index, 0, removed);
+            
+            setDrillDownChoices(prev => ({
+              ...prev,
+              [question.QuizNo]: items
+            }));
+
+            const orderedChoices = items.map(choice => choice.Choice).join(';');
+            handleInputChange(question.QuizNo, orderedChoices);
+          }}>
+            <div className="flex flex-col gap-2">
+              <Droppable droppableId={`${question.QuizNo}`}>
+                {(provided, snapshot) => (
+                  <div 
+                    ref={provided.innerRef} 
+                    {...provided.droppableProps}
+                    className={`
+                      space-y-2 border-2 border-dashed p-4 rounded-lg min-h-[200px]
+                      ${snapshot.isDraggingOver ? 'bg-gray-50' : ''}
+                    `}
+                  >
+                    {drillDownChoices[question.QuizNo].map((choice, index) => (
+                      <Draggable 
+                        key={choice.AuxiliaryIndex2.toString()}
+                        draggableId={`${question.QuizNo}-${choice.AuxiliaryIndex2}`}
+                        index={index}
+                        isDragDisabled={isSubmitted || isLocked}
+                      >
+                        {(provided, snapshot) => (
+                          <div
+                            ref={provided.innerRef}
+                            {...provided.draggableProps}
+                            {...provided.dragHandleProps}
+                            className={`
+                              flex items-center p-3 bg-white border-2 rounded-md select-none
+                              ${snapshot.isDragging ? 'shadow-lg border-[#5FAF46]' : 'border-gray-200'}
+                              ${isSubmitted || isLocked ? 'opacity-50 cursor-not-allowed' : 'cursor-move hover:border-[#5FAF46]'}
+                            `}
+                            style={{
+                              ...provided.draggableProps.style,
+                              userSelect: 'none'
+                            }}
+                          >
+                            <span className="mr-3 text-gray-400">⋮⋮</span>
+                            <span>{choice.Choice}</span>
+                            <span className="ml-auto bg-gray-100 px-2 py-1 rounded-full text-sm text-gray-600">
+                              {index + 1}
+                            </span>
+                          </div>
+                        )}
+                      </Draggable>
+                    ))}
+                    {provided.placeholder}
+                  </div>
+                )}
+              </Droppable>
+              <input
+                type="hidden"
+                value={answers[question.QuizNo] || ''}
+                disabled={isSubmitted || isLocked}
+              />
+            </div>
+          </DragDropContext>
+        );
+
       case 'Yes/No':
         return (
-          <div className="flex space-x-4">
-            <label className="flex items-center space-x-2">
+          <div className="space-x-4">
+            <label className="inline-flex items-center">
               <input
                 type="radio"
-                name={`question-${question.QuizNo}`}
                 value="Yes"
                 checked={answers[question.QuizNo] === 'Yes'}
                 onChange={(e) => handleInputChange(question.QuizNo, e.target.value)}
                 disabled={isSubmitted || isLocked}
-                className={`form-radio text-[#5FAF46] ${
-                  isSubmitted || isLocked ? 'cursor-not-allowed' : ''
-                }`}
+                className={`h-4 w-4 ${isSubmitted || isLocked ? 'cursor-not-allowed' : ''}`}
               />
-              <span>Yes</span>
+              <span className={`ml-2 ${isSubmitted || isLocked ? 'text-gray-500' : ''}`}>Yes</span>
             </label>
-            <label className="flex items-center space-x-2">
+            <label className="inline-flex items-center">
               <input
                 type="radio"
-                name={`question-${question.QuizNo}`}
                 value="No"
                 checked={answers[question.QuizNo] === 'No'}
                 onChange={(e) => handleInputChange(question.QuizNo, e.target.value)}
                 disabled={isSubmitted || isLocked}
-                className={`form-radio text-[#5FAF46] ${
-                  isSubmitted || isLocked ? 'cursor-not-allowed' : ''
-                }`}
+                className={`h-4 w-4 ${isSubmitted || isLocked ? 'cursor-not-allowed' : ''}`}
               />
-              <span>No</span>
+              <span className={`ml-2 ${isSubmitted || isLocked ? 'text-gray-500' : ''}`}>No</span>
             </label>
           </div>
         );
@@ -370,7 +450,7 @@ const Questionnaire = () => {
       let txtAnswer = '';
       let numberAnswer = 0;
 
-      switch (question.QuestionType) {
+      switch (question.InputType) {
         case 'Yes/No':
           boolAnswer = value === 'Yes' ? 'true' : 'false';
           break;
@@ -381,6 +461,7 @@ const Questionnaire = () => {
         case 'Single Choice':
         case 'Multiple Choice':
         case 'Date':
+        case 'Order':
           txtAnswer = value || '';
           break;
         default:
@@ -478,7 +559,7 @@ const Questionnaire = () => {
       )}
       <div className="mb-6 p-4 bg-gray-50 rounded-md">
         <h3 className="font-semibold text-gray-700 mb-2">Instructions:</h3>
-        <ul className="text-sm text-gray-600 space-y-1">
+        <ul className="text-lg text-gray-600 space-y-1">
           <li>• Questions marked with an asterisk (<span className="text-red-500">*</span>) are mandatory.</li>
           <li>• Please complete all questions on the current page before proceeding to the next.</li>
           <li>• Your responses will be saved only after final submission.</li>
