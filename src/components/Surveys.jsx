@@ -48,7 +48,7 @@ const Surveys = () => {
           </Envelope>`;
 
         const xhr = new XMLHttpRequest();
-        xhr.open('POST', '/api/KCIC/WS/KCIC%20LIVE/Codeunit/ProjectQuestions', true);
+        xhr.open('POST', '/api/KCICCTEST/WS/CRONUS%20International%20Ltd./Codeunit/ProjectQuestions', true);
         xhr.setRequestHeader('Content-Type', 'text/xml; charset=utf-8');
         xhr.setRequestHeader('SOAPAction', 'isSurveyfilledByEmail');
         xhr.setRequestHeader('Authorization', 'Basic ' + btoa('Appkings:Appkings@254!'));
@@ -78,7 +78,7 @@ const Surveys = () => {
 
     const fetchSurveys = async () => {
       try {
-        const response = await fetch('http://185.219.142.163:7048/KCIC/ODataV4/Company(\'KCIC%20LIVE\')/Survey', {
+        const response = await fetch('http://45.149.206.133:6048/KCICCTEST/ODataV4/Company(\'CRONUS%20International%20Ltd.\')/Survey', {
           headers: {
             'Authorization': 'Basic ' + btoa('Appkings:Appkings@254!')
           }

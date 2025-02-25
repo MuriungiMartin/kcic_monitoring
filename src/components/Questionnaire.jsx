@@ -1,6 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { Droppable, DragDropContext, Draggable } from 'react-beautiful-dnd';
+import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
+
+const reorder = (list, startIndex, endIndex) => {
+  const result = Array.from(list);
+  const [removed] = result.splice(startIndex, 1);
+  result.splice(endIndex, 0, removed);
+  return result;
+};
 
 const Questionnaire = () => {
   const { surveyCode } = useParams();
@@ -20,7 +27,7 @@ const Questionnaire = () => {
       try {
         // Fetch questions
         const questionsResponse = await fetch(
-          '/odata/KCIC/ODataV4/Company(\'KCIC%20LIVE\')/Questions',
+          '/odata/KCICCTEST/ODataV4/Company(\'CRONUS%20International%20Ltd.\')/Questions',
           {
             headers: {
               'Authorization': 'Basic ' + btoa('Appkings:Appkings@254!'),
@@ -57,7 +64,7 @@ const Questionnaire = () => {
 
         if (questionsNeedingChoices.length > 0) {
           const choicesResponse = await fetch(
-            '/odata/KCIC/ODataV4/Company(\'KCIC%20LIVE\')/DrillDownAnswers',
+            '/odata/KCICCTEST/ODataV4/Company(\'CRONUS%20International%20Ltd.\')/DrillDownAnswers',
             {
               headers: {
                 'Authorization': 'Basic ' + btoa('Appkings:Appkings@254!'),
@@ -253,52 +260,46 @@ const Questionnaire = () => {
           </div>
         );
 
-      case 'Order':
-        // Debug log to check if we have choices
-        console.log('Rendering Order question:', {
-          questionNo: question.QuizNo,
-          choices: drillDownChoices[question.QuizNo],
-          currentAnswer: answers[question.QuizNo]
-        });
-
+      case 'Order': {
         if (!drillDownChoices[question.QuizNo]) {
           return <div>Loading choices...</div>;
         }
 
-        return (
-          <DragDropContext onDragEnd={(result) => {
-            console.log('Drag end result:', result);
-            if (!result.destination) return;
-            
-            const items = Array.from(drillDownChoices[question.QuizNo]);
-            const [removed] = items.splice(result.source.index, 1);
-            items.splice(result.destination.index, 0, removed);
-            
-            setDrillDownChoices(prev => ({
-              ...prev,
-              [question.QuizNo]: items
-            }));
+        const onDragEnd = (result) => {
+          if (!result.destination) return;
+          
+          const items = reorder(
+            drillDownChoices[question.QuizNo],
+            result.source.index,
+            result.destination.index
+          );
+          
+          setDrillDownChoices(prev => ({
+            ...prev,
+            [question.QuizNo]: items
+          }));
 
-            const orderedChoices = items.map(choice => choice.Choice).join(';');
-            handleInputChange(question.QuizNo, orderedChoices);
-          }}>
-            <div className="flex flex-col gap-2">
+          const orderedChoices = items.map(choice => choice.Choice).join(';');
+          handleInputChange(question.QuizNo, orderedChoices);
+        };
+
+        return (
+          <div className="min-h-[200px] p-4">
+            <DragDropContext onDragEnd={onDragEnd}>
               <Droppable droppableId={`${question.QuizNo}`}>
                 {(provided, snapshot) => (
-                  <div 
-                    ref={provided.innerRef} 
+                  <div
+                    ref={provided.innerRef}
                     {...provided.droppableProps}
-                    className={`
-                      space-y-2 border-2 border-dashed p-4 rounded-lg min-h-[200px]
-                      ${snapshot.isDraggingOver ? 'bg-gray-50' : ''}
-                    `}
+                    className={`space-y-2 border-2 border-dashed p-4 rounded-lg min-h-[200px] ${
+                      snapshot.isDraggingOver ? 'bg-gray-50' : ''
+                    }`}
                   >
                     {drillDownChoices[question.QuizNo].map((choice, index) => (
-                      <Draggable 
-                        key={choice.AuxiliaryIndex2.toString()}
+                      <Draggable
+                        key={`${question.QuizNo}-${choice.AuxiliaryIndex2}`}
                         draggableId={`${question.QuizNo}-${choice.AuxiliaryIndex2}`}
                         index={index}
-                        isDragDisabled={isSubmitted || isLocked}
                       >
                         {(provided, snapshot) => (
                           <div
@@ -308,12 +309,8 @@ const Questionnaire = () => {
                             className={`
                               flex items-center p-3 bg-white border-2 rounded-md select-none
                               ${snapshot.isDragging ? 'shadow-lg border-[#5FAF46]' : 'border-gray-200'}
-                              ${isSubmitted || isLocked ? 'opacity-50 cursor-not-allowed' : 'cursor-move hover:border-[#5FAF46]'}
+                              ${isSubmitted || isLocked ? 'opacity-50' : 'cursor-move hover:border-[#5FAF46]'}
                             `}
-                            style={{
-                              ...provided.draggableProps.style,
-                              userSelect: 'none'
-                            }}
                           >
                             <span className="mr-3 text-gray-400">⋮⋮</span>
                             <span>{choice.Choice}</span>
@@ -328,14 +325,10 @@ const Questionnaire = () => {
                   </div>
                 )}
               </Droppable>
-              <input
-                type="hidden"
-                value={answers[question.QuizNo] || ''}
-                disabled={isSubmitted || isLocked}
-              />
-            </div>
-          </DragDropContext>
+            </DragDropContext>
+          </div>
         );
+      }
 
       case 'Yes/No':
         return (
@@ -485,7 +478,7 @@ const Questionnaire = () => {
         </Envelope>`;
 
       const xhr = new XMLHttpRequest();
-      xhr.open('POST', '/api/KCIC/WS/KCIC%20LIVE/Codeunit/ProjectQuestions', true);
+      xhr.open('POST', '/api/KCICCTEST/WS/CRONUS%20International%20Ltd./Codeunit/ProjectQuestions', true);
       
       xhr.setRequestHeader('Content-Type', 'text/xml; charset=utf-8');
       xhr.setRequestHeader('SOAPAction', 'SubmitQuizAnswers');

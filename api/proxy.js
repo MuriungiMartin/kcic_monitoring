@@ -1,5 +1,5 @@
 export default async function handler(req, res) {
-  const response = await fetch('http://185.219.142.163:7047' + req.url, {
+  const response = await fetch('http://45.149.206.133:6047' + req.url, {
     method: req.method,
     headers: {
       'Content-Type': 'text/xml; charset=utf-8',

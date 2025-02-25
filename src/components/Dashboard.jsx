@@ -9,7 +9,7 @@ const Dashboard = () => {
     const fetchDashboardData = async () => {
       try {
         const baseUrl = import.meta.env.VITE_API_URL;
-        const loginUrl = `${baseUrl}/KCIC/WS/KCIC%20LIVE/Codeunit/ProjectQuestions`;
+        const loginUrl = `${baseUrl}/KCICCTEST/WS/CRONUS%20International%20Ltd./Codeunit/ProjectQuestions`;
         const xhr = new XMLHttpRequest();
         xhr.open('POST', loginUrl, true);
         

@@ -28,7 +28,7 @@ const Login = () => {
   const handleLogin = async () => {
     try {
       const baseUrl = import.meta.env.VITE_API_URL;
-      const loginUrl = `${baseUrl}/KCIC/WS/KCIC%20LIVE/Codeunit/ProjectQuestions`;
+      const loginUrl = `${baseUrl}/KCICCTEST/WS/CRONUS%20International%20Ltd./Codeunit/ProjectQuestions`;
       
       const soapRequest = `<Envelope xmlns="http://schemas.xmlsoap.org/soap/envelope/">
         <Body>
@@ -138,7 +138,7 @@ const Login = () => {
       </Envelope>`;
 
       const xhr = new XMLHttpRequest();
-      xhr.open('POST', `${baseUrl}/KCIC/WS/KCIC%20LIVE/Codeunit/ProjectQuestions`, true);
+      xhr.open('POST', `${baseUrl}/KCICCTEST/WS/CRONUS%20International%20Ltd./Codeunit/ProjectQuestions`, true);
       
       xhr.setRequestHeader('Content-Type', 'text/xml; charset=utf-8');
       xhr.setRequestHeader('SOAPAction', 'GenerateOtpCode');
@@ -196,7 +196,7 @@ const Login = () => {
       </Envelope>`;
 
       const xhr = new XMLHttpRequest();
-      xhr.open('POST', `${baseUrl}/KCIC/WS/KCIC%20LIVE/Codeunit/ProjectQuestions`, true);
+      xhr.open('POST', `${baseUrl}/KCICCTEST/WS/CRONUS%20International%20Ltd./Codeunit/ProjectQuestions`, true);
       
       xhr.setRequestHeader('Content-Type', 'text/xml; charset=utf-8');
       xhr.setRequestHeader('SOAPAction', 'ResetCustomerPassword');

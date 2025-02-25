@@ -8,12 +8,12 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'http://185.219.142.163:7047',
+        target: 'http://45.149.206.133:6047',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, '')
       },
       '/odata': {
-        target: 'http://185.219.142.163:7048',
+        target: 'http://45.149.206.133:6048',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/odata/, '')
       }
