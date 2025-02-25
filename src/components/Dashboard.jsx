@@ -8,8 +8,10 @@ const Dashboard = () => {
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
+        const baseUrl = import.meta.env.VITE_API_URL;
+        const loginUrl = `${baseUrl}/KCIC/WS/KCIC%20LIVE/Codeunit/ProjectQuestions`;
         const xhr = new XMLHttpRequest();
-        xhr.open('POST', '/api/KCICCTEST/WS/CRONUS%20International%20Ltd./Codeunit/ProjectQuestions', true);
+        xhr.open('POST', loginUrl, true);
         
         // Set headers matching the working example
         xhr.setRequestHeader('Content-Type', 'text/xml; charset=utf-8');
