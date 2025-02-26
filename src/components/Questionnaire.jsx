@@ -1,12 +1,133 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
+import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
+import PropTypes from 'prop-types';
+import 'leaflet/dist/leaflet.css';
+import L from 'leaflet';
+
+// Fix Leaflet's default icon path issues
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
+  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+});
 
 const reorder = (list, startIndex, endIndex) => {
   const result = Array.from(list);
   const [removed] = result.splice(startIndex, 1);
   result.splice(endIndex, 0, removed);
   return result;
+};
+
+const LocationMarker = ({ position, setPosition }) => {
+  useMapEvents({
+    click(e) {
+      setPosition(e.latlng);
+    },
+  });
+
+  return position ? <Marker position={position} /> : null;
+};
+
+LocationMarker.propTypes = {
+  position: PropTypes.shape({
+    lat: PropTypes.number,
+    lng: PropTypes.number,
+  }),
+  setPosition: PropTypes.func.isRequired,
+};
+
+LocationMarker.defaultProps = {
+  position: null,
+};
+
+const GeoLocationQuestion = ({ question, handleInputChange, isSubmitted, isLocked }) => {
+  const [position, setPosition] = useState(null);
+  const defaultCenter = { lat: -1.2921, lng: 36.8219 }; // Default to Nairobi
+
+  useEffect(() => {
+    // Try to get user's current location
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const newPos = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+          setPosition(newPos);
+          handleInputChange(question.QuizNo, `${newPos.lat},${newPos.lng}`);
+        },
+        (error) => {
+          console.error('Error getting location:', error);
+          setPosition(defaultCenter);
+          handleInputChange(question.QuizNo, `${defaultCenter.lat},${defaultCenter.lng}`);
+        }
+      );
+    }
+  }, [question.QuizNo, handleInputChange]);
+
+  const handleMapClick = (newPosition) => {
+    setPosition(newPosition);
+    handleInputChange(question.QuizNo, `${newPosition.lat},${newPosition.lng}`);
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="h-[400px] w-full border-2 rounded-lg overflow-hidden">
+        <MapContainer
+          center={position || defaultCenter}
+          zoom={13}
+          style={{ height: '100%', width: '100%' }}
+        >
+          <TileLayer
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+          />
+          <LocationMarker position={position} setPosition={handleMapClick} />
+        </MapContainer>
+      </div>
+      <div className="flex gap-4">
+        <input
+          type="text"
+          value={position ? `${position.lat}, ${position.lng}` : ''}
+          readOnly
+          className="w-full p-2 border rounded-md bg-gray-50"
+          placeholder="Click on the map to select location"
+        />
+        <button
+          onClick={() => {
+            if (navigator.geolocation) {
+              navigator.geolocation.getCurrentPosition(
+                (pos) => {
+                  const newPos = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+                  setPosition(newPos);
+                  handleInputChange(question.QuizNo, `${newPos.lat},${newPos.lng}`);
+                },
+                (error) => console.error('Error getting location:', error)
+              );
+            }
+          }}
+          className="px-4 py-2 bg-[#5FAF46] text-white rounded-md hover:bg-[#4a8c35] transition-colors"
+          disabled={isSubmitted || isLocked}
+        >
+          Use Current Location
+        </button>
+      </div>
+    </div>
+  );
+};
+
+GeoLocationQuestion.propTypes = {
+  question: PropTypes.shape({
+    QuizNo: PropTypes.number.isRequired,
+  }).isRequired,
+  handleInputChange: PropTypes.func.isRequired,
+  isSubmitted: PropTypes.bool,
+  isLocked: PropTypes.bool,
+};
+
+GeoLocationQuestion.defaultProps = {
+  isSubmitted: false,
+  isLocked: false,
 };
 
 const Questionnaire = () => {
@@ -330,6 +451,16 @@ const Questionnaire = () => {
         );
       }
 
+      case 'Geo-Location':
+        return (
+          <GeoLocationQuestion
+            question={question}
+            handleInputChange={handleInputChange}
+            isSubmitted={isSubmitted}
+            isLocked={isLocked}
+          />
+        );
+
       case 'Yes/No':
         return (
           <div className="space-x-4">
@@ -455,6 +586,7 @@ const Questionnaire = () => {
         case 'Multiple Choice':
         case 'Date':
         case 'Order':
+        case 'Geo-Location':
           txtAnswer = value || '';
           break;
         default:
